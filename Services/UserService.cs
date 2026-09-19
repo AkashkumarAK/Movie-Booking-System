@@ -19,7 +19,8 @@ namespace MovieBooking.API.Services;
             {
                 Name = dto.Name,
                 Email = dto.Email,
-                Password = dto.Password
+                Password = dto.Password,
+                Role = dto.Role
             };
 
             var createdUser = await _userRepository.CreateAsync(user);
@@ -40,7 +41,8 @@ namespace MovieBooking.API.Services;
             {
                 Id = u.Id,
                 Name = u.Name,
-                Email = u.Email
+                Email = u.Email,
+                Role = u.Role
             }).ToList();
         }
 

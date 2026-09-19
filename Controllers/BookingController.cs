@@ -22,6 +22,7 @@ namespace MovieBooking.API.Controllers
 
 
         // POST: api/Booking
+        [Authorize(Roles = "User")]
         [HttpPost]
         public async Task<IActionResult> CreateBooking(
             [FromBody] CreateBookingRequest request)
@@ -45,6 +46,7 @@ namespace MovieBooking.API.Controllers
 
 
         // GET: api/Booking
+        [Authorize(Roles = "Admin")]
         [HttpGet]
         public async Task<IActionResult> GetAllBookings()
         {
@@ -57,20 +59,35 @@ namespace MovieBooking.API.Controllers
 
         // GET: api/Booking/1
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetBookingById(
-            int id)
-        {
-            var booking =
-                await _bookingService.GetByIdAsync(id);
+      // [HttpGet("{id}")]
+public async Task<IActionResult> GetBookingById(int id)
+{
+    var userIdClaim = User.FindFirstValue(
+        ClaimTypes.NameIdentifier);
 
-            if (booking == null)
-            {
-                return NotFound(
-                    $"Booking with ID {id} not found.");
-            }
+    if (userIdClaim == null)
+    {
+        return Unauthorized();
+    }
 
-            return Ok(booking);
-        }
+    var userId = int.Parse(userIdClaim);
+
+    var booking =
+        await _bookingService.GetByIdAsync(id);
+
+    if (booking == null)
+    {
+        return NotFound(
+            $"Booking with ID {id} not found.");
+    }
+
+    if (booking.UserId != userId)
+    {
+        return Forbid();
+    }
+
+    return Ok(booking);
+}
 
 
         // PUT: api/Booking/1/cancel
