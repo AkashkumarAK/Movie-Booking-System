@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using MovieBooking.API.DTO.User;
 using MovieBooking.API.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace MovieBooking.API.Controllers;
 
@@ -14,6 +15,7 @@ namespace MovieBooking.API.Controllers;
         {
             _userService = userService;
         }
+        
 
         [HttpPost]
         public async Task<IActionResult> CreateUser(CreateUserRequest dto)
@@ -23,6 +25,7 @@ namespace MovieBooking.API.Controllers;
             return Ok(user);
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpGet]
         public async Task<IActionResult> GetAllUsers()
         {
