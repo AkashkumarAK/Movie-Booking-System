@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using MovieBooking.API.Data;
 using MovieBooking.API.Models;
+using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Data.SqlClient;
 
 namespace MovieBooking.API.Repositories;
 
@@ -11,6 +13,11 @@ namespace MovieBooking.API.Repositories;
         public BookingRepository(ApplicationDbContext context)
         {
             _context = context;
+        }
+
+        public async Task<IDbContextTransaction> BeginTransactionAsync()
+        {
+            return await _context.Database.BeginTransactionAsync();
         }
 
         // Create Booking
@@ -86,6 +93,39 @@ namespace MovieBooking.API.Repositories;
                 .Where(bs => bs.BookingId == bookingId)
                 .Select(bs => bs.SeatId)
                 .ToListAsync();
+        }
+
+        public async Task AcquireSeatLockAsync(int showId, int seatId)
+        {
+            var resource = 
+                $"MovieBooking:Show:{showId}:Seat:{seatId}";
+
+            var resourceParameter = new SqlParameter("@Resource", resource);
+
+            var resultParameter = new SqlParameter("@Result", System.Data.SqlDbType.Int)
+            {
+                Direction = System.Data.ParameterDirection.Output
+            };
+
+            await _context.Database.ExecuteSqlRawAsync(
+                """
+                EXEC @Result = sp_getapplock
+                    @Resource = @Resource,
+                    @LockMode = 'Exclusive',
+                    @LockOwner = 'Transaction',
+                    @LockTimeout = 10000;
+                """,
+                resultParameter,
+                resourceParameter);
+
+            var result = (int)resultParameter.Value;
+
+            if (result < 0)
+            {
+                throw new InvalidOperationException(
+                    $"Could not acquire lock for Show {showId}, Seat {seatId}. " +
+                    $"SQL lock result: {result}");
+            }
         }
     }
       
