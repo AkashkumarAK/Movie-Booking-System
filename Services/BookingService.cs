@@ -14,71 +14,95 @@ namespace MovieBooking.API.Services;
         }
 
  
-        public async Task<BookingResponse> CreateAsync(int user_id,
-            CreateBookingRequest dto)
+        public async Task<BookingResponse> CreateAsync( int user_id,CreateBookingRequest dto)
         {
-            var seats = await _bookingRepository.GetSeatsByIdsAsync(dto.SeatIds, dto.ShowId);
+            await using var transaction =
+                await _bookingRepository.BeginTransactionAsync();
 
-            if (seats.Count != dto.SeatIds.Count)
+            try
             {
-              throw new Exception("One or more seat IDs are invalid.");
-           }
-            // 1. Check if selected seats are already booked
-            var bookedSeatIds = await _bookingRepository
-                .GetBookedSeatIdsAsync(
-                    dto.ShowId,
-                    dto.SeatIds);
+                // Always lock seats in the same order
+                // to reduce deadlock risk.
+                var sortedSeatIds = dto.SeatIds
+                    .Distinct()
+                    .OrderBy(id => id)
+                    .ToList();
 
-            if (bookedSeatIds.Any())
-            {
-                throw new InvalidOperationException(
-                    $"The following seats are already booked: " +
-                    $"{string.Join(", ", bookedSeatIds)}");
-            }
-
-            // 2. Get selected seats---stored in seats variable
-          //  var seats = await _bookingRepository
-            //    .GetSeatsByIdsAsync(dto.SeatIds);
-
-            // 3. Calculate total price
-            var totalAmount = seats.Sum(s => s.Price);
-
-            // 4. Create Booking
-            var booking = new Booking
-            {
-                UserId = user_id,
-                ShowId = dto.ShowId,
-                BookingDate = DateTime.UtcNow,
-                TotalAmount = totalAmount,
-                Status = "Confirmed"
-            };
-
-            var createdBooking = await _bookingRepository
-                .CreateAsync(booking);
-
-            // 5. Create BookingSeat records
-            var bookingSeats = dto.SeatIds
-                .Select(seatId => new BookingSeat
+                // 1. Acquire logical locks
+                foreach (var seatId in sortedSeatIds)
                 {
-                    BookingId = createdBooking.Id,
-                    SeatId = seatId
-                })
-                .ToList();
+                    await _bookingRepository
+                        .AcquireSeatLockAsync(dto.ShowId, seatId);
+                }
 
-            await _bookingRepository
-                .AddBookingSeatsAsync(bookingSeats);
+                await Task.Delay(30000);
 
-            // 6. Return response
-            return new BookingResponse
+                // 2. Now check whether seats are already booked
+                var seats = await _bookingRepository
+                    .GetSeatsByIdsAsync(sortedSeatIds, dto.ShowId);
+
+                if (seats.Count != sortedSeatIds.Count)
+                {
+                    throw new Exception("One or more seat IDs are invalid.");
+                }
+
+                var bookedSeatIds = await _bookingRepository
+                    .GetBookedSeatIdsAsync(dto.ShowId, sortedSeatIds);
+
+                if (bookedSeatIds.Any())
+                {
+                    throw new InvalidOperationException(
+                        $"The following seats are already booked: " +
+                        $"{string.Join(", ", bookedSeatIds)}");
+                }
+
+                // 3. Calculate total
+                var totalAmount = seats.Sum(s => s.Price);
+
+                // 4. Create Booking
+                var booking = new Booking
+                {
+                    UserId = user_id,
+                    ShowId = dto.ShowId,
+                    BookingDate = DateTime.UtcNow,
+                    TotalAmount = totalAmount,
+                    Status = "Confirmed"
+                };
+
+                var createdBooking =
+                    await _bookingRepository.CreateAsync(booking);
+
+                // 5. Create BookingSeats
+                var bookingSeats = sortedSeatIds
+                    .Select(seatId => new BookingSeat
+                    {
+                        BookingId = createdBooking.Id,
+                        SeatId = seatId
+                    })
+                    .ToList();
+
+                await _bookingRepository
+                    .AddBookingSeatsAsync(bookingSeats);
+
+                // 6. Everything succeeded
+                await transaction.CommitAsync();
+
+                return new BookingResponse
+                {
+                    Id = createdBooking.Id,
+                    UserId = createdBooking.UserId,
+                    ShowId = createdBooking.ShowId,
+                    SeatIds = sortedSeatIds,
+                    BookingDate = createdBooking.BookingDate,
+                    TotalAmount = createdBooking.TotalAmount,
+                    Status = createdBooking.Status
+                };
+            }
+            catch
             {
-                Id = createdBooking.Id,
-                UserId = createdBooking.UserId,
-                ShowId = createdBooking.ShowId,
-                SeatIds = dto.SeatIds,
-                BookingDate = createdBooking.BookingDate,
-                TotalAmount = createdBooking.TotalAmount,
-                Status = createdBooking.Status
-            };
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
       

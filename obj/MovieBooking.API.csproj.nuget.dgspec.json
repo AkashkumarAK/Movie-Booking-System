@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\Downloads (NEW)\\Booking Ticket App\\MovieBooking.API\\MovieBooking.API.csproj": {}
+    "D:\\Downloads (NEW)\\MovieTicket ADd encounter same time booking\\Movie-Booking-System\\MovieBooking.API.csproj": {}
   },
   "projects": {
-    "D:\\Downloads (NEW)\\Booking Ticket App\\MovieBooking.API\\MovieBooking.API.csproj": {
+    "D:\\Downloads (NEW)\\MovieTicket ADd encounter same time booking\\Movie-Booking-System\\MovieBooking.API.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Downloads (NEW)\\Booking Ticket App\\MovieBooking.API\\MovieBooking.API.csproj",
+        "projectUniqueName": "D:\\Downloads (NEW)\\MovieTicket ADd encounter same time booking\\Movie-Booking-System\\MovieBooking.API.csproj",
         "projectName": "MovieBooking.API",
-        "projectPath": "D:\\Downloads (NEW)\\Booking Ticket App\\MovieBooking.API\\MovieBooking.API.csproj",
+        "projectPath": "D:\\Downloads (NEW)\\MovieTicket ADd encounter same time booking\\Movie-Booking-System\\MovieBooking.API.csproj",
         "packagesPath": "C:\\Users\\akash\\.nuget\\packages\\",
-        "outputPath": "D:\\Downloads (NEW)\\Booking Ticket App\\MovieBooking.API\\obj\\",
+        "outputPath": "D:\\Downloads (NEW)\\MovieTicket ADd encounter same time booking\\Movie-Booking-System\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\akash\\AppData\\Roaming\\NuGet\\NuGet.Config"

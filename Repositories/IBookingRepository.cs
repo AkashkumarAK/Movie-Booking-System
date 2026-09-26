@@ -1,9 +1,15 @@
 using MovieBooking.API.Models;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace MovieBooking.API.Repositories;
 
     public interface IBookingRepository
     {
+
+      Task AcquireSeatLockAsync(int showId, int seatId);
+      
+      Task<IDbContextTransaction> BeginTransactionAsync();
+
         Task<Booking> CreateAsync(Booking booking);
 
         Task<List<Booking>> GetAllAsync();
